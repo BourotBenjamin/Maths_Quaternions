@@ -1,4 +1,6 @@
 ﻿  ObjLoader.cpp
 c:\users\philoupe\dropbox\workspace\c++\maths_quaternions\objloader\objloader.cpp(192): warning C4018: '<' : incompatibilité signed/unsigned
 c:\users\philoupe\dropbox\workspace\c++\maths_quaternions\objloader\objloader.cpp(440): warning C4244: 'argument' : conversion de 'double' en 'float', perte possible de données
+c:\users\philoupe\dropbox\workspace\c++\maths_quaternions\objloader\objloader.cpp(446): warning C4244: 'argument' : conversion de 'double' en 'float', perte possible de données
+c:\users\philoupe\dropbox\workspace\c++\maths_quaternions\objloader\objloader.cpp(452): warning C4244: 'argument' : conversion de 'double' en 'float', perte possible de données
   ObjLoader.vcxproj -> C:\Users\Philoupe\Dropbox\workspace\C++\Maths_Quaternions\Debug\ObjLoader.exe

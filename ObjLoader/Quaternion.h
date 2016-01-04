@@ -62,28 +62,36 @@ public:
 	}
 
 	glm::mat4 toMatrixUnit() {
-		glm::mat4 ret(
-			( 1 - 2 * this->y * this->y - 2 * this->z * this->z ),
-			( 2 * this->x * this->y - 2 * this->w * this->z ),
-			( 2 * this->x * this->z + 2 * this->w + this->y ),
+		//this->normalize();
+		float qxx = this->x * this->x;
+		float qyy = this->y * this->y;
+		float qzz = this->z * this->z;
+		float qxz = this->x * this->x;
+		float qxy = this->x * this->y;
+		float qyz = this->y * this->z;
+		float qwx = this->w * this->x;
+		float qwy = this->w * this->y;
+		float qwz = this->w * this->z;
+
+		glm::mat4 result(
+			(1 - 2 * (qyy + qzz)),
+			(2 * (qxy + qwz)),
+			(2 * (qxz - qwy)),
 			0,
 
-			( 2 * this->x * this->y + 2 * this->w * this->z ),
-			( 1 - 2 * this->x * this->x - 2 * this->z * this->z ),
-			( 2 * this->y * this->z + 2 * this->w * this->x ),
+			(2 * (qxy - qwz)),
+			(1 - 2 * (qxx + qzz)),
+			(2 * (qyz + qwx)),
 			0,
 
-			(  2 * this->x * this->z - 2 * this->w * this->z ),
-			( 2 * this->y * this->z - 2 * this->w * this->x ),
-			( 1 - 2 * this->x * this->x - 2 * this->y * this->y ),
+			(2 * (qxz + qwy)),
+			(2 * (qyz - qwx)),
+			(1 - 2 * (qxx + qyy)),
 			0,
 
-			0,
-			0,
-			0,
-			1
+			0, 0, 0, 1
 		);
-		return ret;
+		return result;
 	}
 
 	static Quaternion multiply(Quaternion A, Quaternion B)
@@ -97,12 +105,4 @@ public:
 	}
 };
 
- /*
-public static Quaternion mult(Quaternion A, Quaternion B, Quaternion C) {
-	C.x = A.w*B.x + A.x*B.w + A.y*B.z - A.z*B.y;
-	C.y = A.w*B.y - A.x*B.z + A.y*B.w + A.z*B.x;
-	C.z = A.w*B.z + A.x*B.y - A.y*B.x + A.z*B.w;
-	C.w = A.w*B.w - A.x*B.x - A.y*B.y - A.z*B.z;
-	return C;
-}*/
 

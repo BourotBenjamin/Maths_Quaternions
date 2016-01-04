@@ -438,16 +438,20 @@ void rotateMouse(int posX, int posY)
 		0,
 		cos(((posX) * M_PI) / width)
 		);
-	/*Quaternion qX(
-		sin(((posY - width / 2) * M_PI) / height),
+	Quaternion qX(
+		sin(((posY)* M_PI) / height),
 		0,
 		0,
-		cos(((posY - width / 2) * M_PI) / height)
+		cos(((posY)* M_PI) / height)
 		);
-	Quaternion cameraRotation = Quaternion::multiply(qZ, qX);*/
-	glm::quat qGLM(qY.w, qY.x, qY.y, qY.z);
-	//g_Camera.rotationMatrix = qY.toMatrixUnit();
-	g_Camera.rotationMatrix = glm::mat4_cast(qGLM);
+	Quaternion qZ(
+		0,
+		0,
+		sin(((posY)* M_PI) / height),
+		cos(((posY)* M_PI) / height)
+		);
+	Quaternion cameraRotation = Quaternion::multiply(qY, qX);
+	g_Camera.rotationMatrix = qX.toMatrixUnit();
 	
 }
 
