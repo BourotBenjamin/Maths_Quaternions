@@ -18,6 +18,9 @@
 #include "tinyobjloader/tiny_obj_loader.h"
 
 #include "AntTweakBar.h"
+#include "Quaternion.h"
+
+#define M_PI 3.14159265359
 
 // ---
 
@@ -32,6 +35,7 @@ struct ViewProj
 {
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
+	glm::mat4 rotationMatrix;
 	glm::vec3 rotation;
 	GLuint UBO;	
 	bool autoRotateCamera;
@@ -379,8 +383,9 @@ void Render()
 
 	auto program = g_BasicShader.GetProgram();
 	glUseProgram(program);
-	
-	auto worldLocation = glGetUniformLocation(program, "u_worldMatrix");		
+
+	auto worldLocation = glGetUniformLocation(program, "u_worldMatrix");
+	auto rotationLocation = glGetUniformLocation(program, "u_rotationMatrix");
 
 	glBindTexture(GL_TEXTURE_2D, g_Objet.textureObj);
 
@@ -389,6 +394,7 @@ void Render()
 
 	glm::mat4& transform = g_Objet.worldMatrix;
 	glUniformMatrix4fv(worldLocation, 1, GL_FALSE, glm::value_ptr(transform));
+	glUniformMatrix4fv(rotationLocation, 1, GL_FALSE, glm::value_ptr(g_Camera.rotationMatrix));
 
 	glDrawElements(GL_TRIANGLES, g_Objet.ElementCount, GL_UNSIGNED_INT, 0);
 
@@ -421,6 +427,30 @@ void Render()
 	glutSwapBuffers();
 }
 
+void rotateMouse(int posX, int posY)
+{
+	TwEventMouseMotionGLUT(posX, posY);
+	auto width = glutGet(GLUT_WINDOW_WIDTH);
+	auto height = glutGet(GLUT_WINDOW_HEIGHT);
+	Quaternion qY(
+		0,
+		sin(((posX)* M_PI) / width),
+		0,
+		cos(((posX) * M_PI) / width)
+		);
+	/*Quaternion qX(
+		sin(((posY - width / 2) * M_PI) / height),
+		0,
+		0,
+		cos(((posY - width / 2) * M_PI) / height)
+		);
+	Quaternion cameraRotation = Quaternion::multiply(qZ, qX);*/
+	glm::quat qGLM(qY.w, qY.x, qY.y, qY.z);
+	//g_Camera.rotationMatrix = qY.toMatrixUnit();
+	g_Camera.rotationMatrix = glm::mat4_cast(qGLM);
+	
+}
+
 int main(int argc, char* argv[])
 {
 	glutInit(&argc, argv);
@@ -443,8 +473,9 @@ int main(int argc, char* argv[])
 	// redirection pour AntTweakBar
 	// dans le cas ou vous utiliseriez deja ces callbacks
 	// il suffit d'appeler l'event d'AntTweakBar depuis votre fonction de rappel
+	//glutMotionFunc((GLUTmousemotionfun)TwEventMouseMotionGLUT);
 	glutMouseFunc((GLUTmousebuttonfun)TwEventMouseButtonGLUT);
-	glutMotionFunc((GLUTmousemotionfun)TwEventMouseMotionGLUT);
+	glutMotionFunc(rotateMouse);
 	glutPassiveMotionFunc((GLUTmousemotionfun)TwEventMouseMotionGLUT);
 	glutKeyboardFunc((GLUTkeyboardfun)TwEventKeyboardGLUT);
 	glutSpecialFunc((GLUTspecialfun)TwEventSpecialGLUT);

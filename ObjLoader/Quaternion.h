@@ -3,9 +3,9 @@
 #include "glm.hpp"
 class Quaternion {
 private:
-	float x, y, z, w;
 
 public:
+	float x, y, z, w;
 	Quaternion() {
 		this->x = 0.0f;
 		this->y = 0.0f;
@@ -45,7 +45,6 @@ public:
 		this->y = axis.y * sinAngle2;
 		this->z = axis.z * sinAngle2;
 		this->w = (float) cos(angle / 2.0);
-		return q;
 	}
 
 	void normalize() {
@@ -54,14 +53,12 @@ public:
 		this->y = this->y / len;
 		this->z = this->y / len;
 		this->w = this->w / len;
-		return q;
 	}
 
 	void conjugate() {
-		q.x = -q.x;
-		q.y = -q.y;
-		q.z = -q.z;
-		return q;
+		this->x = this->x;
+		this->y = -this->y;
+		this->z = -this->z;
 	}
 
 	glm::mat4 toMatrixUnit() {
@@ -88,7 +85,17 @@ public:
 		);
 		return ret;
 	}
-}
+
+	static Quaternion multiply(Quaternion A, Quaternion B)
+	{
+		Quaternion C;
+		C.x = A.w*B.x + A.x*B.w + A.y*B.z - A.z*B.y;
+		C.y = A.w*B.y - A.x*B.z + A.y*B.w + A.z*B.x;
+		C.z = A.w*B.z + A.x*B.y - A.y*B.x + A.z*B.w;
+		C.w = A.w*B.w - A.x*B.x - A.y*B.y - A.z*B.z;
+		return C;
+	}
+};
 
  /*
 public static Quaternion mult(Quaternion A, Quaternion B, Quaternion C) {

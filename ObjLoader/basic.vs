@@ -5,6 +5,7 @@ layout(location = 1) in vec3 a_normal;
 layout(location = 2) in vec2 a_texcoords;
 
 uniform mat4 u_worldMatrix;
+uniform mat4 u_rotationMatrix;
 
 layout(std140) uniform ViewProj
 {
@@ -20,9 +21,10 @@ out Vertex
 
 void main(void)
 {
+	vec4 pos = a_position * u_rotationMatrix;
 	vec3 N = mat3(u_worldMatrix) * a_normal;
 	OUT.normal = N;
 	OUT.texcoords = a_texcoords;
-	gl_Position = u_projectionMatrix * u_viewMatrix * u_worldMatrix * a_position;
+	gl_Position = u_projectionMatrix * u_viewMatrix * u_worldMatrix * pos;
 
 }
