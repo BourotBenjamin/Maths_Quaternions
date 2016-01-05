@@ -66,7 +66,7 @@ public:
 		float qxx = this->x * this->x;
 		float qyy = this->y * this->y;
 		float qzz = this->z * this->z;
-		float qxz = this->x * this->x;
+		float qxz = this->x * this->z;
 		float qxy = this->x * this->y;
 		float qyz = this->y * this->z;
 		float qwx = this->w * this->x;

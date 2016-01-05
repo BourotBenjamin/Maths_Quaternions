@@ -36,6 +36,7 @@ struct ViewProj
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
 	glm::mat4 rotationMatrix;
+	Quaternion rotationQuat;
 	glm::vec3 rotation;
 	GLuint UBO;	
 	bool autoRotateCamera;
@@ -368,7 +369,7 @@ void Render()
 	float rotY = glm::radians(g_Camera.rotation.y);
 	const glm::vec4 orbitDistance(0.0f, 0.0f, 5.0f, 1.0f);
 	glm::vec4 position = glm::eulerAngleY(rotY) * orbitDistance;
-	g_Camera.viewMatrix = glm::lookAt(glm::vec3(position), glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
+	g_Camera.viewMatrix = glm::lookAt(glm::vec3(position), glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f)) * g_Camera.rotationMatrix;
 
 	glBindBuffer(GL_UNIFORM_BUFFER, g_Camera.UBO);
 	//glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, glm::value_ptr(g_Camera.viewMatrix), GL_STREAM_DRAW);
@@ -385,7 +386,6 @@ void Render()
 	glUseProgram(program);
 
 	auto worldLocation = glGetUniformLocation(program, "u_worldMatrix");
-	auto rotationLocation = glGetUniformLocation(program, "u_rotationMatrix");
 
 	glBindTexture(GL_TEXTURE_2D, g_Objet.textureObj);
 
@@ -394,7 +394,7 @@ void Render()
 
 	glm::mat4& transform = g_Objet.worldMatrix;
 	glUniformMatrix4fv(worldLocation, 1, GL_FALSE, glm::value_ptr(transform));
-	glUniformMatrix4fv(rotationLocation, 1, GL_FALSE, glm::value_ptr(g_Camera.rotationMatrix));
+
 
 	glDrawElements(GL_TRIANGLES, g_Objet.ElementCount, GL_UNSIGNED_INT, 0);
 
@@ -422,7 +422,7 @@ void Render()
 	//glBindVertexArray(0);
 
 	// dessine les tweakBar
-	TwDraw();  
+	TwDraw();
 
 	glutSwapBuffers();
 }
@@ -450,8 +450,8 @@ void rotateMouse(int posX, int posY)
 		sin(((posY)* M_PI) / height),
 		cos(((posY)* M_PI) / height)
 		);
-	Quaternion cameraRotation = Quaternion::multiply(qY, qX);
-	g_Camera.rotationMatrix = qX.toMatrixUnit();
+	g_Camera.rotationQuat = Quaternion::multiply(qY, qX);
+	g_Camera.rotationMatrix = g_Camera.rotationQuat.toMatrixUnit();
 	
 }
 
