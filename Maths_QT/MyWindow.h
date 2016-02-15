@@ -42,6 +42,7 @@ glm::mat4 rotationMatrix;
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
+glm::vec3 lightPos;
 
 
 void RenderScene(Shader& shader, Model& ourModel)
@@ -72,7 +73,7 @@ void RenderScene(Shader& shader, Model& ourModel)
 
 
 	/********* POINT LIGHTS *********/
-	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].position"), 1.0f + sin(glfwGetTime()) * 2.0f, sin(glfwGetTime() / 2.0f) * 1.0f, 2.0f);
+	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].position"), lightPos.x, lightPos.y, lightPos.z);
 	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].ambient"), 0.05f, 0.05f, 0.05f);
 	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].diffuse"), 0.2f, 0.2f, 0.2f);
 	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].specular"), 0.1f, 0.1f, 0.1f);
@@ -216,6 +217,8 @@ int main(int argc, char* argv[])
 	// Game loop
 	while (!glfwWindowShouldClose(window))
 	{
+		lightPos = glm::vec3(1.0f + sin(glfwGetTime()) * 2.0f, sin(glfwGetTime() / 2.0f) * 1.0f, 2.0f);
+		lightPos = glm::vec3(2.0f, 0.5f, 1.0f);
 		// Set frame time
 		GLfloat currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
@@ -224,8 +227,7 @@ int main(int argc, char* argv[])
 		// Check and call events
 		glfwPollEvents();
 		Do_Movement();
-		glm::vec3 lightPos = glm::vec3(1.0f + sin(glfwGetTime()) * 2.0f, sin(glfwGetTime() / 2.0f) * 1.0f, 2.0f);
-		glm::mat4  lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 50.0f);
+		glm::mat4  lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 50.0f);
 		//lightProjection = glm::perspective(45.0f, (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane); // Note that if you use a perspective projection matrix you'll have to change the light position as the current light position isn't enough to reflect the whole scene.
 		glm::mat4  lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(1.0));
 		glm::mat4 lightSpaceMatrix = lightProjection * lightView;
@@ -243,9 +245,13 @@ int main(int argc, char* argv[])
 
 		glViewport(0, 0, screenWidth, screenHeight);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		RenderScene(shader, nano);
+		glActiveTexture(GL_TEXTURE0);
+		glUniform1i(glGetUniformLocation(shader.Program, "shadowMap"), 0);
 		glBindTexture(GL_TEXTURE_2D, depthMap);
+		RenderScene(shader, nano);
 		RenderScene(shader, ground);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, 0);
 		
 		/*
 		// Draw the loaded model
@@ -260,16 +266,16 @@ int main(int argc, char* argv[])
 		glUniformMatrix4fv(glGetUniformLocation(shaderDebug.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glBindTexture(GL_TEXTURE_2D, depthMap);
 		RenderQuad(); // uncomment this line to see depth map
-		*/
 		
-		/*
-		depthShader.Use();
-		glUniformMatrix4fv(glGetUniformLocation(depthShader.Program, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+		
+		
+		shaderDebug.Use();
+		glUniformMatrix4fv(glGetUniformLocation(shaderDebug.Program, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
 		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 		//glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		RenderScene(depthShader, nano);
+		RenderScene(shaderDebug, nano);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		*/
 		// Swap the buffers
