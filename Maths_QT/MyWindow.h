@@ -37,7 +37,7 @@ Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
-float pointLightCoeff = 0.0f, dirLightCoeff = 1.0f;
+float pointLightCoeff = 1.0f, dirLightCoeff = 0.0f;
 glm::mat4 rotationMatrix;
 
 GLfloat deltaTime = 0.0f;
@@ -46,10 +46,6 @@ GLfloat lastFrame = 0.0f;
 
 void RenderScene(Shader& shader, Model& ourModel)
 {
-
-	// Clear the colorbuffer
-	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	shader.Use();   // <-- Don't forget this one!
 	// Transformation matrices
@@ -75,17 +71,74 @@ void RenderScene(Shader& shader, Model& ourModel)
 	glUniform1f(glGetUniformLocation(shader.Program, "dirLight.coeff"), dirLightCoeff);
 
 
-	/********* POINT LIGHTS *********//*
+	/********* POINT LIGHTS *********/
 	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].position"), 1.0f + sin(glfwGetTime()) * 2.0f, sin(glfwGetTime() / 2.0f) * 1.0f, 2.0f);
-	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].ambient"), 0.05f, 0.0f, 0.0f);
-	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].diffuse"), 0.8f, 0.0f, 0.0f);
-	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].specular"), 0.1f, 0.0f, 0.0f);
+	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].ambient"), 0.05f, 0.05f, 0.05f);
+	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].diffuse"), 0.2f, 0.2f, 0.2f);
+	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].specular"), 0.1f, 0.1f, 0.1f);
 	glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].constant"), 1.0f);
 	glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].linear"), 0.09);
 	glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].quadratic"), 0.032);
-	glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].coeff"), pointLightCoeff);*/
+	glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].coeff"), pointLightCoeff);
 
 	ourModel.Draw(shader);
+
+}
+
+
+
+
+// RenderQuad() Renders a 1x1 quad in NDC, best used for framebuffer color targets
+// and post-processing effects.
+GLuint quadVAO = 0;
+GLuint quadVBO;
+void RenderQuad()
+{
+	if (quadVAO == 0)
+	{
+		GLfloat quadVertices[] = {
+			// Positions        // Texture Coords
+			-10.0f, 10.0f, -5.0f, 0.0f, 1024.0f,
+			-10.0f, -10.0f, -5.0f, 0.0f, 0.0f,
+			10.0f, 10.0f, -5.0f, 1024.0f, 1024.0f,
+			10.0f, -10.0f, -5.0f, 1024.0f, 0.0f,
+		};
+		// Setup plane VAO
+		glGenVertexArrays(1, &quadVAO);
+		glGenBuffers(1, &quadVBO);
+		glBindVertexArray(quadVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	}
+	glBindVertexArray(quadVAO);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+}
+
+GLuint loadTexture(GLchar* path)
+{
+	// Generate texture ID and load texture data 
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	int width, height;
+	unsigned char* image = SOIL_load_image(path, &width, &height, 0, SOIL_LOAD_RGB);
+	// Assign texture to ID
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	// Parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	SOIL_free_image_data(image);
+	return textureID;
 
 }
 
@@ -125,11 +178,15 @@ int main(int argc, char* argv[])
 	// Setup and compile our shaders
 	Shader shader("basic.vs", "basic.fs");
 	Shader depthShader("depth.vs", "depth.fs");
+	Shader shaderDebug("debug.vs", "debug.fs");
 	//Shader lightShader("light.vs", "light.fs");
 
 
 	// Load models
-	Model ourModel("./models/nano/nano.obj");
+	Model nano("./models/nano/nanosuit.obj");
+	Model ground("./models/nano/nano.obj");
+
+	GLint groundTexture = loadTexture("./models/nano/groung.png");
 
 
 	// Draw in wireframe
@@ -154,10 +211,7 @@ int main(int argc, char* argv[])
 	glReadBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	GLfloat near_plane = 1.0f, far_plane = 7.5f;
-	glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-	glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f), glm::vec3(0.0f), glm::vec3(1.0));  
-	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 	// Game loop
 	while (!glfwWindowShouldClose(window))
@@ -170,22 +224,54 @@ int main(int argc, char* argv[])
 		// Check and call events
 		glfwPollEvents();
 		Do_Movement();
+		glm::vec3 lightPos = glm::vec3(1.0f + sin(glfwGetTime()) * 2.0f, sin(glfwGetTime() / 2.0f) * 1.0f, 2.0f);
+		glm::mat4  lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 50.0f);
+		//lightProjection = glm::perspective(45.0f, (GLfloat)SHADOW_WIDTH / (GLfloat)SHADOW_HEIGHT, near_plane, far_plane); // Note that if you use a perspective projection matrix you'll have to change the light position as the current light position isn't enough to reflect the whole scene.
+		glm::mat4  lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(1.0));
+		glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
 		glUniformMatrix4fv(glGetUniformLocation(depthShader.Program, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+		glUniformMatrix4fv(glGetUniformLocation(shader.Program, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+		
 		// 1. first render to depth map
 		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 		glClear(GL_DEPTH_BUFFER_BIT);
-		RenderScene(depthShader, ourModel);
+		RenderScene(depthShader, nano);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		// 2. then render scene as normal with shadow mapping (using depth map)
+
 		glViewport(0, 0, screenWidth, screenHeight);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		RenderScene(shader, nano);
 		glBindTexture(GL_TEXTURE_2D, depthMap);
-		RenderScene(shader, ourModel);
-
-
-
+		RenderScene(shader, ground);
+		
+		/*
+		// Draw the loaded model
+		shaderDebug.Use();
+		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
+		glm::mat4 view = camera.GetViewMatrix() * rotationMatrix;
+		glUniformMatrix4fv(glGetUniformLocation(shaderDebug.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(glGetUniformLocation(shaderDebug.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glm::mat4 model;
+		model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // Translate it down a bit so it's at the center of the scene
+		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));	// It's a bit too big for our scene, so scale it down
+		glUniformMatrix4fv(glGetUniformLocation(shaderDebug.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glBindTexture(GL_TEXTURE_2D, depthMap);
+		RenderQuad(); // uncomment this line to see depth map
+		*/
+		
+		/*
+		depthShader.Use();
+		glUniformMatrix4fv(glGetUniformLocation(depthShader.Program, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+		//glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		RenderScene(depthShader, nano);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		*/
 		// Swap the buffers
 		glfwSwapBuffers(window);
 	}

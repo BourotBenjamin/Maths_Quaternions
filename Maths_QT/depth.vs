@@ -5,10 +5,12 @@ layout (location = 2) in vec2 texCoords;
 
 out vec2 TexCoords;
 uniform mat4 lightSpaceMatrix;
+uniform mat4 projection;
+uniform mat4 view;
 uniform mat4 model;
 
 void main()
 {
     TexCoords = texCoords;
-    gl_Position = lightSpaceMatrix * model * vec4(position, 1.0f);
+    gl_Position = lightSpaceMatrix * vec4(position, 1.0f);
 }  

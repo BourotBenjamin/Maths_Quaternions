@@ -18,7 +18,7 @@ struct DirLight {
 	float coeff;
 };  
 uniform DirLight dirLight;
-/*
+
 #define NR_POINT_LIGHTS 
 struct PointLight {
     vec3 position;  
@@ -32,7 +32,7 @@ struct PointLight {
     float quadratic;
 	float coeff;
 }; 
-uniform PointLight pointLights[NR_POINT_LIGHTS];*/
+uniform PointLight pointLights[NR_POINT_LIGHTS];
 
 
 uniform sampler2D texture_diffuse1;
@@ -69,7 +69,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewPos)
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));  
     return lighting;
 }  
-/*
+
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewPos)
 {
     vec3 lightDir = normalize(light.position - fragPos);
@@ -87,13 +87,13 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewPos)
     float shadow = ShadowCalculation(FragPosLightSpace);       
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));  
     return lighting;
-} */
+} 
 
 void main()
 {    
     vec3 resultLights = CalcDirLight(dirLight, Normal, viewPos) * dirLight.coeff;
-    /*for(int i = 0; i < NR_POINT_LIGHTS; i++)
-        resultLights += CalcPointLight(pointLights[i], Normal, FragPos, viewPos) * pointLights[i].coeff;  */
+    //for(int i = 0 ; i < NR_POINT_LIGHTS ; i++)
+        resultLights += CalcPointLight(pointLights[0], Normal, FragPos, viewPos) * pointLights[0].coeff;  
 		
     vec4 result = vec4((resultLights), 1.0f) * vec4( 1.0f) * texture(texture_diffuse1, TexCoords);
     float gamma = 2.2;
