@@ -175,6 +175,9 @@ private:
 			// 4. Height maps
 			std::vector<Texture> heightMaps = this->loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
 			textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+			// 5. Shininess maps
+			std::vector<Texture> shininessMaps = this->loadMaterialTextures(material, aiTextureType_SHININESS, "texture_shininess");
+			textures.insert(textures.end(), shininessMaps.begin(), shininessMaps.end());
 		}
 
 		// Return a mesh object created from the extracted mesh data

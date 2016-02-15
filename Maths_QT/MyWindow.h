@@ -44,6 +44,51 @@ GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 
 
+void RenderScene(Shader& shader, Model& ourModel)
+{
+
+	// Clear the colorbuffer
+	glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	shader.Use();   // <-- Don't forget this one!
+	// Transformation matrices
+	glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
+	glm::mat4 view = camera.GetViewMatrix() * rotationMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(shader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	glUniformMatrix4fv(glGetUniformLocation(shader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+	// Draw the loaded model
+	glm::mat4 model;
+	model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // Translate it down a bit so it's at the center of the scene
+	model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));	// It's a bit too big for our scene, so scale it down
+	glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+	GLint viewPosLoc = glGetUniformLocation(shader.Program, "viewPos");
+	glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
+
+	/********* DIR LIGHT *********/
+	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
+	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.ambient"), 0.0f, 0.05f, 0.05f);
+	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.diffuse"), 0.0f, 0.4f, 0.4f);
+	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.specular"), 0.0f, 0.05f, 0.05f);
+	glUniform1f(glGetUniformLocation(shader.Program, "dirLight.coeff"), dirLightCoeff);
+
+
+	/********* POINT LIGHTS *********//*
+	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].position"), 1.0f + sin(glfwGetTime()) * 2.0f, sin(glfwGetTime() / 2.0f) * 1.0f, 2.0f);
+	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].ambient"), 0.05f, 0.0f, 0.0f);
+	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].diffuse"), 0.8f, 0.0f, 0.0f);
+	glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].specular"), 0.1f, 0.0f, 0.0f);
+	glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].constant"), 1.0f);
+	glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].linear"), 0.09);
+	glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].quadratic"), 0.032);
+	glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].coeff"), pointLightCoeff);*/
+
+	ourModel.Draw(shader);
+
+}
+
 
 // The MAIN function, from here we start our application and run our Game loop
 int main(int argc, char* argv[])
@@ -75,18 +120,44 @@ int main(int argc, char* argv[])
 
 	// Setup some OpenGL options
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_FRAMEBUFFER_SRGB);
 
 	// Setup and compile our shaders
 	Shader shader("basic.vs", "basic.fs");
+	Shader depthShader("depth.vs", "depth.fs");
 	//Shader lightShader("light.vs", "light.fs");
 
 
 	// Load models
-	Model ourModel("./models/nano/nanosuit.obj");
+	Model ourModel("./models/nano/nano.obj");
 
 
 	// Draw in wireframe
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+
+	GLuint depthMapFBO;
+	glGenFramebuffers(1, &depthMapFBO);
+	const GLuint SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+	GLuint depthMap;
+	glGenTextures(1, &depthMap);
+	glBindTexture(GL_TEXTURE_2D, depthMap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+		SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	GLfloat near_plane = 1.0f, far_plane = 7.5f;
+	glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+	glm::mat4 lightView = glm::lookAt(glm::vec3(-0.2f, -1.0f, -0.3f), glm::vec3(0.0f), glm::vec3(1.0));
+	glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
 	// Game loop
 	while (!glfwWindowShouldClose(window))
@@ -100,45 +171,20 @@ int main(int argc, char* argv[])
 		glfwPollEvents();
 		Do_Movement();
 
-		// Clear the colorbuffer
-		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+		glUniformMatrix4fv(glGetUniformLocation(depthShader.Program, "lightSpaceMatrix"), 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
+		// 1. first render to depth map
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+		glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		RenderScene(depthShader, ourModel);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		// 2. then render scene as normal with shadow mapping (using depth map)
+		glViewport(0, 0, screenWidth, screenHeight);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		shader.Use();   // <-- Don't forget this one!
-		// Transformation matrices
-		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
-		glm::mat4 view = camera.GetViewMatrix() * rotationMatrix;
-		glUniformMatrix4fv(glGetUniformLocation(shader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-		glUniformMatrix4fv(glGetUniformLocation(shader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-
-		// Draw the loaded model
-		glm::mat4 model;
-		model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // Translate it down a bit so it's at the center of the scene
-		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));	// It's a bit too big for our scene, so scale it down
-		glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-
-		GLint viewPosLoc = glGetUniformLocation(shader.Program, "viewPos");
-		glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
-
-		/********* DIR LIGHT *********/
-		glUniform3f(glGetUniformLocation(shader.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
-		glUniform3f(glGetUniformLocation(shader.Program, "dirLight.ambient"), 0.0f, 0.05f, 0.05f);
-		glUniform3f(glGetUniformLocation(shader.Program, "dirLight.diffuse"), 0.0f, 0.4f, 0.4f);
-		glUniform3f(glGetUniformLocation(shader.Program, "dirLight.specular"), 0.0f, 0.05f, 0.05f);
-		glUniform1f(glGetUniformLocation(shader.Program, "dirLight.coeff"), dirLightCoeff);
+		glBindTexture(GL_TEXTURE_2D, depthMap);
+		RenderScene(shader, ourModel);
 
 
-		/********* POINT LIGHTS *********/
-		glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].position"), 1.0f + sin(glfwGetTime()) * 2.0f, sin(glfwGetTime() / 2.0f) * 1.0f, 2.0f);
-		glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].ambient"), 0.05f, 0.0f, 0.0f);
-		glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].diffuse"), 0.8f, 0.0f, 0.0f);
-		glUniform3f(glGetUniformLocation(shader.Program, "pointLights[0].specular"), 0.1f, 0.0f, 0.0f);
-		glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].constant"), 1.0f);
-		glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].linear"), 0.09);
-		glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].quadratic"), 0.032);
-		glUniform1f(glGetUniformLocation(shader.Program, "pointLights[0].coeff"), pointLightCoeff);
-
-		ourModel.Draw(shader);
 
 		// Swap the buffers
 		glfwSwapBuffers(window);
