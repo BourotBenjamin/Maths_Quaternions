@@ -53,7 +53,6 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     float currentDepth = projCoords.z;
     // Check whether current frag pos is in shadow
     float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
-
     return shadow;
 }
 
@@ -67,7 +66,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewPos)
     vec3 diffuse  = light.diffuse  * diff * vec3(texture(texture_diffuse1, TexCoords));
     vec3 specular = light.specular * spec * vec3(texture(texture_specular1, TexCoords));
     float shadow = ShadowCalculation(FragPosLightSpace);  
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;  
+    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));  
     return lighting;
 }  
 /*
@@ -86,14 +85,14 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewPos)
     diffuse  *= attenuation;
     specular *= attenuation;
     float shadow = ShadowCalculation(FragPosLightSpace);       
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;  
+    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));  
     return lighting;
 } */
 
 void main()
 {    
     vec3 resultLights = CalcDirLight(dirLight, Normal, viewPos) * dirLight.coeff;
-   /* for(int i = 0; i < NR_POINT_LIGHTS; i++)
+    /*for(int i = 0; i < NR_POINT_LIGHTS; i++)
         resultLights += CalcPointLight(pointLights[i], Normal, FragPos, viewPos) * pointLights[i].coeff;  */
 		
     vec4 result = vec4((resultLights), 1.0f) * vec4( 1.0f) * texture(texture_diffuse1, TexCoords);
