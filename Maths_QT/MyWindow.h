@@ -37,7 +37,7 @@ Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
-float pointLightCoeff = 1.0f, dirLightCoeff = 0.0f;
+float pointLightCoeff = 0.0f, dirLightCoeff = 1.0f;
 glm::mat4 rotationMatrix;
 
 GLfloat deltaTime = 0.0f;
@@ -66,9 +66,9 @@ void RenderScene(Shader& shader, Model& ourModel)
 
 	/********* DIR LIGHT *********/
 	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.direction"), -0.2f, -1.0f, -0.3f);
-	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.ambient"), 0.0f, 0.05f, 0.05f);
-	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.diffuse"), 0.0f, 0.4f, 0.4f);
-	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.specular"), 0.0f, 0.05f, 0.05f);
+	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.ambient"), 0.05f, 0.05f, 0.05f);
+	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.diffuse"), 0.4f, 0.4f, 0.4f);
+	glUniform3f(glGetUniformLocation(shader.Program, "dirLight.specular"), 0.05f, 0.05f, 0.05f);
 	glUniform1f(glGetUniformLocation(shader.Program, "dirLight.coeff"), dirLightCoeff);
 
 
@@ -203,9 +203,11 @@ int main(int argc, char* argv[])
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
 		SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	GLfloat borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
 	glDrawBuffer(GL_NONE);
