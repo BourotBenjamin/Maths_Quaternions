@@ -73,7 +73,6 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewPos)
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewPos)
 {
-	return 0.0;
     vec3 lightDir = normalize(light.position - fragPos);
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 reflectDir = reflect(-lightDir, normal);
@@ -93,12 +92,12 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewPos)
 
 void main()
 {    
-    vec3 resultLights = CalcDirLight(dirLight, Normal, viewPos) * dirLight.coeff;
+    vec3 resultLights = CalcDirLight(dirLight, Normal, viewPos) * 1.0;
     //for(int i = 0 ; i < NR_POINT_LIGHTS ; i++)
-        resultLights += CalcPointLight(pointLights[0], Normal, FragPos, viewPos) * pointLights[0].coeff;  
+        //resultLights += CalcPointLight(pointLights[0], Normal, FragPos, viewPos) * pointLights[0].coeff;  
 		
     vec4 result = vec4((resultLights), 1.0f) * vec4( 1.0f) * texture(texture_diffuse1, TexCoords);
     float gamma = 2.2;
-    result = pow(result, vec4(1.0/gamma));
+    //result = pow(result, vec4(1.0/gamma));
     color = vec4(result);
 }
